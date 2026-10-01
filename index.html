@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بازی نقش‌های دستوری</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#1a73e8; --blue-dark:#1558b0;
+    --red:#d93025; --green:#1e8e3e; --yellow:#f9ab00;
+    --grey:#5f6368; --bg:#f8f9fa; --surface:#ffffff;
+    --shadow-1:0 1px 2px rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15);
+    --shadow-2:0 1px 3px rgba(60,64,67,.3),0 4px 8px 3px rgba(60,64,67,.15);
+    --shadow-3:0 4px 4px rgba(60,64,67,.3),0 8px 12px 6px rgba(60,64,67,.15);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Vazirmatn',system-ui,sans-serif;
+    background:var(--bg); color:#202124; min-height:100vh;
+    -webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;
+    overflow-x:hidden;
+  }
+  .bg-orbs{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
+  .orb{position:absolute;border-radius:50%;filter:blur(60px);opacity:.35;animation:float 18s ease-in-out infinite;}
+  .orb.b{background:#4285f4;width:340px;height:340px;top:-80px;right:-60px;}
+  .orb.r{background:#ea4335;width:280px;height:280px;bottom:-60px;left:-40px;animation-delay:-6s;}
+  .orb.y{background:#fbbc05;width:220px;height:220px;top:40%;left:10%;animation-delay:-11s;}
+  .orb.g{background:#34a853;width:300px;height:300px;bottom:10%;right:5%;animation-delay:-3s;}
+  @keyframes float{
+    0%,100%{transform:translate(0,0) scale(1);}
+    33%{transform:translate(30px,-40px) scale(1.1);}
+    66%{transform:translate(-25px,25px) scale(.95);}
+  }
+  .wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:20px 14px 110px;}
+
+  /* هدر ساده */
+  header.top{display:flex;align-items:center;gap:12px;padding:6px 4px 16px;}
+  .logo{font-weight:900;font-size:22px;color:var(--blue);letter-spacing:-.5px;}
+  .spacer{flex:1;}
+  .progress-pill{
+    border-radius:999px;padding:7px 14px;font-weight:700;
+    font-size:13px;color:#3c4043;display:flex;align-items:center;gap:7px;
+    background:rgba(255,255,255,.55);
+    backdrop-filter:blur(12px) saturate(160%);-webkit-backdrop-filter:blur(12px) saturate(160%);
+    box-shadow:0 4px 14px rgba(60,64,67,.18), inset 0 1px 0 rgba(255,255,255,.7);
+    border:1px solid rgba(255,255,255,.5);
+    transition:opacity .3s;
+  }
+  .progress-pill.hidden-pill{opacity:0;pointer-events:none;}
+  .progress-pill b{color:var(--blue);font-size:15px;}
+
+  .glass-card{
+    --bg-color: rgba(255, 255, 255, 0.28);
+    --highlight: rgba(255, 255, 255, 0.85);
+    --text: #202124;
+    position: relative; border-radius: 22px; overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  }
+  .glass-filter,.glass-overlay,.glass-specular{position:absolute;inset:0;border-radius:inherit;pointer-events:none;}
+  .glass-filter{z-index:1;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    filter: url(#glass-distortion) saturate(125%) brightness(1.12);}
+  .glass-overlay{z-index:2;background:var(--bg-color);}
+  .glass-specular{z-index:3;
+    box-shadow: inset 1px 1px 1.5px var(--highlight), inset -1px -1px 1.5px rgba(255,255,255,.15);
+    transition: background .2s;}
+  .glass-content{position:relative;z-index:4;padding:22px 18px 26px;color:var(--text);}
+
+  .hint{text-align:center;color:var(--grey);font-size:13px;margin-bottom:14px;line-height:1.9;}
+
+  .sentences{display:flex;flex-direction:column;gap:10px;}
+  .sentence{
+    background:rgba(255,255,255,.42);
+    backdrop-filter:blur(8px) saturate(140%);-webkit-backdrop-filter:blur(8px) saturate(140%);
+    border:1px solid rgba(255,255,255,.55);
+    border-radius:14px;padding:12px 10px;
+    display:flex;flex-wrap:wrap;gap:0;align-items:center;justify-content:center;
+    animation:pop .45s cubic-bezier(.2,.8,.3,1.2) both;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
+  }
+  @keyframes pop{from{opacity:0;transform:translateY(14px) scale(.97);}to{opacity:1;transform:none;}}
+  .word{
+    position:relative;padding:6px 9px;border-radius:10px;
+    background:rgba(255,255,255,.72);
+    font-size:14.5px;font-weight:600;cursor:pointer;
+    box-shadow:0 1px 2px rgba(60,64,67,.16), inset 0 1px 0 rgba(255,255,255,.8);
+    transition:transform .18s cubic-bezier(.2,.8,.3,1.4),box-shadow .2s,background .2s,color .2s;
+    border:1.5px solid transparent;margin:2px 1px;line-height:1.5;
+  }
+  .word:hover{transform:translateY(-2px);box-shadow:var(--shadow-1);}
+  .word:active{transform:scale(.94);}
+  .word.assigned{background:linear-gradient(135deg,rgba(232,240,254,.95),rgba(210,227,252,.95));
+    color:var(--blue-dark);border-color:#aecbfa;}
+  .word.assigned::after{
+    content:attr(data-label);position:absolute;top:-8px;left:50%;transform:translateX(-50%);
+    background:var(--blue);color:#fff;font-size:9.5px;font-weight:700;
+    padding:1px 6px;border-radius:999px;white-space:nowrap;
+    animation:tagIn .3s cubic-bezier(.2,.8,.3,1.5) both;
+    box-shadow:0 2px 6px rgba(26,115,232,.45);
+  }
+  @keyframes tagIn{from{opacity:0;transform:translateX(-50%) scale(.5);}to{opacity:1;transform:translateX(-50%) scale(1);}}
+  .word.correct{background:linear-gradient(135deg,rgba(230,244,234,.95),rgba(206,234,214,.95))!important;
+    border-color:#81c995!important;color:#137333!important;}
+  .word.correct::after{background:var(--green);}
+  .word.wrong{background:linear-gradient(135deg,rgba(252,232,230,.95),rgba(250,210,207,.95))!important;
+    border-color:#f28b82!important;color:#c5221f!important;
+    animation:shake .5s cubic-bezier(.36,.07,.19,.97) both;}
+  .word.wrong::after{background:var(--red);}
+  .word.wrong::before{content:"";position:absolute;left:6px;right:6px;bottom:3px;height:2.5px;
+    background:var(--red);border-radius:3px;transform-origin:right;
+    animation:lineGrow .4s cubic-bezier(.2,.8,.3,1) both;}
+  @keyframes lineGrow{from{transform:scaleX(0);}to{transform:scaleX(1);}}
+  @keyframes shake{
+    10%,90%{transform:translateX(-2px);}20%,80%{transform:translateX(4px);}
+    30%,50%,70%{transform:translateX(-6px);}40%,60%{transform:translateX(6px);}
+  }
+  .word.locked{cursor:default;}
+  .word.locked:hover{transform:none;box-shadow:0 1px 2px rgba(60,64,67,.16);}
+
+  .actions{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;}
+  .btn{font-family:inherit;font-size:15px;font-weight:700;border:none;border-radius:999px;
+    padding:12px 28px;cursor:pointer;position:relative;overflow:hidden;
+    transition:transform .18s cubic-bezier(.2,.8,.3,1.4),box-shadow .25s,background .25s;
+    display:inline-flex;align-items:center;gap:8px;}
+  .btn:active{transform:scale(.95);}
+  .btn-primary{background:var(--blue);color:#fff;box-shadow:var(--shadow-1);}
+  .btn-primary:hover{box-shadow:var(--shadow-2);background:var(--blue-dark);}
+  .btn-primary:disabled{background:#dadce0;color:#9aa0a6;cursor:not-allowed;box-shadow:none;transform:none;}
+  .btn-ghost{background:rgba(255,255,255,.6);color:var(--blue);border:1.5px solid rgba(255,255,255,.8);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
+  .btn-ghost:hover{background:#f1f3f4;}
+  .ripple{position:absolute;border-radius:50%;transform:scale(0);background:rgba(255,255,255,.55);
+    animation:ripple .6s linear;pointer-events:none;}
+  @keyframes ripple{to{transform:scale(4);opacity:0;}}
+
+  .overlay{position:fixed;inset:0;background:rgba(32,33,36,.5);backdrop-filter:blur(3px);
+    z-index:50;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .overlay.on{opacity:1;pointer-events:auto;}
+  .sheet{
+    position:fixed;left:50%;bottom:0;transform:translate(-50%,110%);
+    width:min(560px,100%);
+    background:rgba(255,255,255,.85);
+    backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);
+    border-top:1px solid rgba(255,255,255,.9);
+    border-radius:28px 28px 0 0;z-index:60;padding:10px 16px 22px;
+    box-shadow:0 -8px 40px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.9);
+    transition:transform .38s cubic-bezier(.2,.9,.3,1.1);
+  }
+  .sheet.on{transform:translate(-50%,0);}
+  .sheet .handle{width:42px;height:4px;border-radius:5px;background:#dadce0;margin:4px auto 12px;}
+  .sheet h3{margin:0 0 2px;text-align:center;font-size:17px;}
+  .sheet .selected-word{text-align:center;color:var(--blue);font-weight:800;font-size:20px;margin:6px 0 14px;}
+  .roles-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+  @media(min-width:520px){.roles-grid{grid-template-columns:repeat(4,1fr);}}
+  .role-btn{font-family:inherit;font-size:13.5px;font-weight:700;padding:13px 6px;border-radius:14px;
+    border:1.5px solid rgba(255,255,255,.8);background:rgba(255,255,255,.6);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    color:#3c4043;cursor:pointer;transition:all .2s cubic-bezier(.2,.8,.3,1.3);}
+  .role-btn:hover{border-color:var(--blue);color:var(--blue);background:#e8f0fe;transform:translateY(-2px);}
+  .role-btn:active{transform:scale(.95);}
+  .role-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .role-btn.clear-role{grid-column:1/-1;color:var(--red);border-color:#f5c6c4;}
+  .role-btn.clear-role:hover{background:#fce8e6;color:var(--red);border-color:var(--red);}
+
+  /* پنجره خطا — مستطیل وسط صفحه */
+  .toast{
+    position:fixed;top:50%;left:50%;
+    transform:translate(-50%,-50%) scale(.85);
+    opacity:0;pointer-events:none;
+    background:rgba(255,255,255,.92);
+    backdrop-filter:blur(20px) saturate(180%);
+    -webkit-backdrop-filter:blur(20px) saturate(180%);
+    border:2px solid var(--red);
+    border-radius:18px;
+    padding:26px 40px;
+    z-index:100;
+    box-shadow:0 12px 40px rgba(217,48,37,.28), 0 4px 12px rgba(0,0,0,.15);
+    display:flex;flex-direction:column;align-items:center;gap:16px;
+    min-width:220px;
+    transition:transform .35s cubic-bezier(.2,.9,.3,1.3), opacity .3s;
+  }
+  .toast.on{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:auto;}
+  .toast .toast-msg{
+    font-size:19px;font-weight:800;color:var(--red);
+    display:flex;align-items:center;gap:10px;direction:rtl;
+  }
+  .toast .toast-msg .num{font-size:26px;color:#c5221f;}
+  .toast .toast-ok{
+    font-family:inherit;font-size:14px;font-weight:700;
+    border:none;border-radius:999px;padding:9px 26px;cursor:pointer;
+    background:var(--red);color:#fff;
+    box-shadow:0 2px 8px rgba(217,48,37,.4);
+    transition:transform .18s,background .2s;
+  }
+  .toast .toast-ok:hover{background:#b3261e;}
+  .toast .toast-ok:active{transform:scale(.94);}
+
+  /* پنجره تأیید پاک کردن — مستطیل وسط صفحه */
+  .confirm{
+    position:fixed;top:50%;left:50%;
+    transform:translate(-50%,-50%) scale(.85);
+    opacity:0;pointer-events:none;
+    background:rgba(255,255,255,.92);
+    backdrop-filter:blur(20px) saturate(180%);
+    -webkit-backdrop-filter:blur(20px) saturate(180%);
+    border:2px solid var(--blue);
+    border-radius:18px;
+    padding:26px 34px;
+    z-index:100;
+    box-shadow:0 12px 40px rgba(26,115,232,.28), 0 4px 12px rgba(0,0,0,.15);
+    display:flex;flex-direction:column;align-items:center;gap:18px;
+    min-width:260px;text-align:center;
+    transition:transform .35s cubic-bezier(.2,.9,.3,1.3), opacity .3s;
+  }
+  .confirm.on{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:auto;}
+  .confirm .confirm-msg{font-size:17px;font-weight:800;color:#202124;line-height:1.8;}
+  .confirm .confirm-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+  .confirm button{
+    font-family:inherit;font-size:14px;font-weight:700;
+    border:none;border-radius:999px;padding:10px 24px;cursor:pointer;
+    transition:transform .18s,background .2s;
+  }
+  .confirm .yes{background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(26,115,232,.4);}
+  .confirm .yes:hover{background:var(--blue-dark);}
+  .confirm .no{background:rgba(0,0,0,.06);color:#3c4043;}
+  .confirm .no:hover{background:rgba(0,0,0,.12);}
+  .confirm button:active{transform:scale(.94);}
+
+  .center-screen{text-align:center;padding:36px 20px;}
+  .big-emoji{font-size:58px;display:block;margin-bottom:10px;animation:bounce 1.4s ease infinite;}
+  @keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-12px);}}
+  .center-screen h2{font-size:23px;margin:0 0 10px;}
+  .center-screen p{color:var(--grey);line-height:1.9;margin:0 0 20px;font-size:14.5px;}
+
+  .confetti{position:fixed;top:-10px;width:10px;height:14px;z-index:99;pointer-events:none;border-radius:2px;}
+  @keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.9;}}
+
+  .stats{display:flex;gap:12px;justify-content:center;margin:18px 0 4px;flex-wrap:wrap;}
+  .stat{background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.7);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border-radius:16px;padding:12px 20px;min-width:100px;}
+  .stat b{display:block;font-size:23px;color:var(--blue);}
+  .stat span{font-size:12.5px;color:var(--grey);}
+
+  .hidden{display:none!important;}
+</style>
+</head>
+<body>
+
+<svg style="display: none" aria-hidden="true">
+  <filter id="glass-distortion">
+    <feTurbulence type="turbulence" baseFrequency="0.008" numOctaves="2" result="noise" />
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="77" />
+  </filter>
+</svg>
+
+<div class="bg-orbs">
+  <div class="orb b"></div><div class="orb r"></div>
+  <div class="orb y"></div><div class="orb g"></div>
+</div>
+
+<div class="wrap">
+  <header class="top">
+    <div class="logo">فارسی</div>
+    <div class="spacer"></div>
+    <div class="progress-pill hidden-pill" id="progressPill">مرحله <b id="roundNum">۱</b> • <span id="perRoundLbl">۲ جمله</span></div>
+  </header>
+
+  <!-- صفحه شروع -->
+  <div id="startScreen" class="glass-card">
+    <div class="glass-filter"></div><div class="glass-overlay"></div><div class="glass-specular"></div>
+    <div class="glass-content center-screen">
+      <span class="big-emoji">🎓</span>
+      <h2>بازی نقش‌های دستوری</h2>
+      <p>
+        روی هر کلمه ضربه بزن و نقش دستوری‌اش را انتخاب کن:<br>
+        <b>نهاد، مفعول، متمم، مسند، فعل، قید، منادا، حرف اضافه</b>
+      </p>
+      <div class="actions">
+        <button class="btn btn-primary" id="startBtn">شروع بازی 🚀</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- صفحه بازی -->
+  <div id="gameScreen" class="hidden">
+    <div class="glass-card">
+      <div class="glass-filter"></div><div class="glass-overlay"></div><div class="glass-specular"></div>
+      <div class="glass-content">
+        <div class="hint">روی کلمه بزن تا نقشش را انتخاب کنی</div>
+        <div class="sentences" id="sentences"></div>
+        <div class="actions">
+          <button class="btn btn-primary" id="checkBtn" disabled>تایید ✓</button>
+          <button class="btn btn-ghost" id="resetBtn">پاک کردن ↺</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- صفحه پایان مرحله -->
+  <div id="roundEndScreen" class="hidden">
+    <div class="glass-card">
+      <div class="glass-filter"></div><div class="glass-overlay"></div><div class="glass-specular"></div>
+      <div class="glass-content center-screen">
+        <span class="big-emoji" id="endEmoji">🎉</span>
+        <h2 id="endTitle">آفرین!</h2>
+        <p id="endText"></p>
+        <div class="stats">
+          <div class="stat"><b id="statCorrect">0</b><span>درست</span></div>
+          <div class="stat"><b id="statWrong">0</b><span>اشتباه</span></div>
+          <div class="stat"><b id="statRound">1</b><span>مرحله</span></div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="nextBtn">مرحله بعد ➜</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- شیت انتخاب نقش -->
+<div class="overlay" id="overlay"></div>
+<div class="sheet" id="sheet">
+  <div class="handle"></div>
+  <h3>نقش دستوری این کلمه چیست؟</h3>
+  <div class="selected-word" id="selectedWord">—</div>
+  <div class="roles-grid" id="rolesGrid"></div>
+</div>
+
+<!-- پنجره خطا -->
+<div class="toast" id="toast">
+  <div class="toast-msg">
+    <span class="num" id="toastNum">۰</span> اشتباه
+  </div>
+  <button class="toast-ok" id="toastOk">باشه</button>
+</div>
+
+<!-- پنجره تأیید پاک کردن -->
+<div class="confirm" id="confirm">
+  <div class="confirm-msg">همه‌ی نقش‌ها پاک شوند؟</div>
+  <div class="confirm-btns">
+    <button class="yes" id="confirmYes">بله، پاک کن</button>
+    <button class="no" id="confirmNo">انصراف</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   بانک جملات — حدود ۲۵۰ جمله
+   نقش‌ها: نهاد / مفعول / متمم / مسند / فعل / قید / منادا / حرف اضافه
+============================================================ */
+const BANK = [
+  /* ۱) نهاد + مسند + فعل اسنادی */
+  {s:[{w:"هوا",r:"نهاد"},{w:"سرد",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"علی",r:"نهاد"},{w:"دانا",r:"مسند"},{w:"بود",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"پزشک",r:"مسند"},{w:"شد",r:"فعل"}]},
+  {s:[{w:"بچه‌ها",r:"نهاد"},{w:"خوشحال",r:"مسند"},{w:"شدند",r:"فعل"}]},
+  {s:[{w:"این",r:"نهاد"},{w:"کتاب",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"مادر",r:"نهاد"},{w:"خسته",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"آسمان",r:"نهاد"},{w:"آبی",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"مهندس",r:"مسند"},{w:"بود",r:"فعل"}]},
+  {s:[{w:"غذا",r:"نهاد"},{w:"خوشمزه",r:"مسند"},{w:"بود",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"دانشجو",r:"مسند"},{w:"هستم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"معلم",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"راه",r:"نهاد"},{w:"طولانی",r:"مسند"},{w:"بود",r:"فعل"}]},
+  {s:[{w:"کتاب",r:"نهاد"},{w:"گران",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"بیمار",r:"مسند"},{w:"شد",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"آماده",r:"مسند"},{w:"هستیم",r:"فعل"}]},
+  {s:[{w:"گل",r:"نهاد"},{w:"زیبا",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"کودک",r:"نهاد"},{w:"خندان",r:"مسند"},{w:"بود",r:"فعل"}]},
+  {s:[{w:"مردم",r:"نهاد"},{w:"شاد",r:"مسند"},{w:"بودند",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"دکتر",r:"مسند"},{w:"شد",r:"فعل"}]},
+  {s:[{w:"هوا",r:"نهاد"},{w:"گرم",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"آب",r:"نهاد"},{w:"سرد",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"آنها",r:"نهاد"},{w:"خوشحال",r:"مسند"},{w:"بودند",r:"فعل"}]},
+  {s:[{w:"کتاب",r:"نهاد"},{w:"مفید",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"دانا",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"معلم",r:"مسند"},{w:"هستم",r:"فعل"}]},
+  {s:[{w:"غذا",r:"نهاد"},{w:"آماده",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"خسته",r:"مسند"},{w:"بود",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"خوشحال",r:"مسند"},{w:"هستیم",r:"فعل"}]},
+  {s:[{w:"پدر",r:"نهاد"},{w:"مهربان",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"زمستان",r:"نهاد"},{w:"سرد",r:"مسند"},{w:"است",r:"فعل"}]},
+
+  /* ۲) نهاد + مفعول + فعل */
+  {s:[{w:"علی",r:"نهاد"},{w:"نامه",r:"مفعول"},{w:"نوشت",r:"فعل"}]},
+  {s:[{w:"مادر",r:"نهاد"},{w:"غذا",r:"مفعول"},{w:"پخت",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"کتاب",r:"مفعول"},{w:"خواند",r:"فعل"}]},
+  {s:[{w:"بچه",r:"نهاد"},{w:"سیب",r:"مفعول"},{w:"خورد",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"فیلم",r:"مفعول"},{w:"دیدم",r:"فعل"}]},
+  {s:[{w:"پدر",r:"نهاد"},{w:"ماشین",r:"مفعول"},{w:"خرید",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"نامه",r:"مفعول"},{w:"فرستاد",r:"فعل"}]},
+  {s:[{w:"معلم",r:"نهاد"},{w:"درس",r:"مفعول"},{w:"گفت",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"خانه",r:"مفعول"},{w:"ساختیم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"گل",r:"مفعول"},{w:"چید",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"کتاب",r:"مفعول"},{w:"می‌خوانم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"شعر",r:"مفعول"},{w:"می‌نویسد",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"کتاب",r:"مفعول"},{w:"خرید",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"فیلم",r:"مفعول"},{w:"دیدیم",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"نامه",r:"مفعول"},{w:"نوشتم",r:"فعل"}]},
+  {s:[{w:"بچه",r:"نهاد"},{w:"شیر",r:"مفعول"},{w:"خورد",r:"فعل"}]},
+  {s:[{w:"مادر",r:"نهاد"},{w:"نان",r:"مفعول"},{w:"پخت",r:"فعل"}]},
+  {s:[{w:"پدر",r:"نهاد"},{w:"روزنامه",r:"مفعول"},{w:"خواند",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"نقاشی",r:"مفعول"},{w:"کشید",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"سؤال",r:"مفعول"},{w:"پرسیدم",r:"فعل"}]},
+  {s:[{w:"معلم",r:"نهاد"},{w:"سؤال",r:"مفعول"},{w:"پرسید",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"آهنگ",r:"مفعول"},{w:"گوش",r:null},{w:"داد",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"درس",r:"مفعول"},{w:"خواندیم",r:"فعل"}]},
+  {s:[{w:"بچه‌ها",r:"نهاد"},{w:"توپ",r:"مفعول"},{w:"خریدند",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"پول",r:"مفعول"},{w:"پیدا",r:null},{w:"کرد",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"میوه",r:"مفعول"},{w:"خوردم",r:"فعل"}]},
+  {s:[{w:"کارگر",r:"نهاد"},{w:"دیوار",r:"مفعول"},{w:"ساخت",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"عکس",r:"مفعول"},{w:"گرفت",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"بازی",r:"مفعول"},{w:"بردیم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"هدیه",r:"مفعول"},{w:"خرید",r:"فعل"}]},
+
+  /* ۳) با «را» */
+  {s:[{w:"علی",r:"نهاد"},{w:"نامه",r:"مفعول"},{w:"را",r:null},{w:"نوشت",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"کتاب",r:"مفعول"},{w:"را",r:null},{w:"خواند",r:"فعل"}]},
+  {s:[{w:"مادر",r:"نهاد"},{w:"غذا",r:"مفعول"},{w:"را",r:null},{w:"پخت",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"فیلم",r:"مفعول"},{w:"را",r:null},{w:"دیدم",r:"فعل"}]},
+  {s:[{w:"پدر",r:"نهاد"},{w:"ماشین",r:"مفعول"},{w:"را",r:null},{w:"فروخت",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"گل",r:"مفعول"},{w:"را",r:null},{w:"چید",r:"فعل"}]},
+  {s:[{w:"بچه",r:"نهاد"},{w:"سیب",r:"مفعول"},{w:"را",r:null},{w:"خورد",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"درس",r:"مفعول"},{w:"را",r:null},{w:"خواندیم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"نامه",r:"مفعول"},{w:"را",r:null},{w:"فرستاد",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"کتاب",r:"مفعول"},{w:"را",r:null},{w:"بستم",r:"فعل"}]},
+  {s:[{w:"معلم",r:"نهاد"},{w:"درس",r:"مفعول"},{w:"را",r:null},{w:"گفت",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"پنجره",r:"مفعول"},{w:"را",r:null},{w:"بست",r:"فعل"}]},
+  {s:[{w:"مادر",r:"نهاد"},{w:"لباس",r:"مفعول"},{w:"را",r:null},{w:"شست",r:"فعل"}]},
+  {s:[{w:"پدر",r:"نهاد"},{w:"نامه",r:"مفعول"},{w:"را",r:null},{w:"خواند",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"سؤال",r:"مفعول"},{w:"را",r:null},{w:"پرسیدم",r:"فعل"}]},
+
+  /* ۴) با حرف اضافه + متمم */
+  {s:[{w:"علی",r:"نهاد"},{w:"به",r:"حرف اضافه"},{w:"مدرسه",r:"متمم"},{w:"رفت",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"دوستش",r:"متمم"},{w:"حرف",r:null},{w:"زد",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"از",r:"حرف اضافه"},{w:"خانه",r:"متمم"},{w:"آمدم",r:"فعل"}]},
+  {s:[{w:"بچه",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"حیاط",r:"متمم"},{w:"بازی",r:null},{w:"کرد",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"به",r:"حرف اضافه"},{w:"من",r:"متمم"},{w:"گفت",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"به",r:"حرف اضافه"},{w:"تهران",r:"متمم"},{w:"رفتیم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"از",r:"حرف اضافه"},{w:"دوستش",r:"متمم"},{w:"تشکر",r:"مفعول"},{w:"کرد",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"خواهرم",r:"متمم"},{w:"آمدم",r:"فعل"}]},
+  {s:[{w:"کتاب",r:"نهاد"},{w:"روی",r:"حرف اضافه"},{w:"میز",r:"متمم"},{w:"است",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"اتاق",r:"متمم"},{w:"نشست",r:"فعل"}]},
+  {s:[{w:"پدر",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"کار",r:"متمم"},{w:"است",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"از",r:"حرف اضافه"},{w:"مدرسه",r:"متمم"},{w:"آمد",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"به",r:"حرف اضافه"},{w:"او",r:"متمم"},{w:"گفتم",r:"فعل"}]},
+  {s:[{w:"علی",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"پدرش",r:"متمم"},{w:"رفت",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"دوستمان",r:"متمم"},{w:"حرف",r:null},{w:"زدیم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"اتاق",r:"متمم"},{w:"خوابید",r:"فعل"}]},
+  {s:[{w:"معلم",r:"نهاد"},{w:"به",r:"حرف اضافه"},{w:"شاگرد",r:"متمم"},{w:"گفت",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"کلاس",r:"متمم"},{w:"نشستیم",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"به",r:"حرف اضافه"},{w:"مدرسه",r:"متمم"},{w:"رفتم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"خانه",r:"متمم"},{w:"است",r:"فعل"}]},
+  {s:[{w:"بچه‌ها",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"پارک",r:"متمم"},{w:"بازی",r:null},{w:"کردند",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"سرعت",r:"متمم"},{w:"به",r:"حرف اضافه"},{w:"خانه",r:"متمم"},{w:"رسید",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"از",r:"حرف اضافه"},{w:"کتابخانه",r:"متمم"},{w:"کتاب",r:"مفعول"},{w:"گرفتم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"به",r:"حرف اضافه"},{w:"بازار",r:"متمم"},{w:"رفت",r:"فعل"}]},
+  {s:[{w:"پدر",r:"نهاد"},{w:"از",r:"حرف اضافه"},{w:"سفر",r:"متمم"},{w:"برگشت",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"مهربانی",r:"متمم"},{w:"حرف",r:null},{w:"زد",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"به",r:"حرف اضافه"},{w:"کوه",r:"متمم"},{w:"رفتیم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"دانشگاه",r:"متمم"},{w:"درس",r:null},{w:"می‌خواند",r:"فعل"}]},
+  {s:[{w:"بچه",r:"نهاد"},{w:"از",r:"حرف اضافه"},{w:"مادرش",r:"متمم"},{w:"پرسید",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"او",r:"متمم"},{w:"آشتی",r:null},{w:"کردم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"برای",r:"حرف اضافه"},{w:"من",r:"متمم"},{w:"کتاب",r:"مفعول"},{w:"خرید",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"درباره",r:"حرف اضافه"},{w:"درس",r:"متمم"},{w:"حرف",r:null},{w:"زدیم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"به",r:"حرف اضافه"},{w:"دوستش",r:"متمم"},{w:"زنگ",r:null},{w:"زد",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"خیابان",r:"متمم"},{w:"راه",r:null},{w:"می‌روم",r:"فعل"}]},
+  {s:[{w:"پدر",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"ماشین",r:"متمم"},{w:"آمد",r:"فعل"}]},
+
+  /* ۵) با قید */
+  {s:[{w:"دیروز",r:"قید"},{w:"علی",r:"نهاد"},{w:"آمد",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"سریع",r:"قید"},{w:"دوید",r:"فعل"}]},
+  {s:[{w:"فردا",r:"قید"},{w:"ما",r:"نهاد"},{w:"می‌رویم",r:"فعل"}]},
+  {s:[{w:"همیشه",r:"قید"},{w:"او",r:"نهاد"},{w:"زود",r:"قید"},{w:"می‌آید",r:"فعل"}]},
+  {s:[{w:"دیشب",r:"قید"},{w:"باران",r:"نهاد"},{w:"بارید",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"آرام",r:"قید"},{w:"راه",r:null},{w:"رفت",r:"فعل"}]},
+  {s:[{w:"امروز",r:"قید"},{w:"هوا",r:"نهاد"},{w:"گرم",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"دیروز",r:"قید"},{w:"هوا",r:"نهاد"},{w:"سرد",r:"مسند"},{w:"بود",r:"فعل"}]},
+  {s:[{w:"فردا",r:"قید"},{w:"علی",r:"نهاد"},{w:"می‌آید",r:"فعل"}]},
+  {s:[{w:"همیشه",r:"قید"},{w:"ما",r:"نهاد"},{w:"درس",r:"مفعول"},{w:"می‌خوانیم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"خیلی",r:"قید"},{w:"خوشحال",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"پدر",r:"نهاد"},{w:"دیروز",r:"قید"},{w:"آمد",r:"فعل"}]},
+  {s:[{w:"دیشب",r:"قید"},{w:"ما",r:"نهاد"},{w:"فیلم",r:"مفعول"},{w:"دیدیم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"هرگز",r:"قید"},{w:"دروغ",r:null},{w:"نمی‌گوید",r:"فعل"}]},
+  {s:[{w:"همیشه",r:"قید"},{w:"او",r:"نهاد"},{w:"مهربان",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"امسال",r:"قید"},{w:"ما",r:"نهاد"},{w:"به",r:"حرف اضافه"},{w:"سفر",r:"متمم"},{w:"رفتیم",r:"فعل"}]},
+  {s:[{w:"دیروز",r:"قید"},{w:"او",r:"نهاد"},{w:"کتاب",r:"مفعول"},{w:"خرید",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"بلند",r:"قید"},{w:"خندید",r:"فعل"}]},
+  {s:[{w:"مادر",r:"نهاد"},{w:"امروز",r:"قید"},{w:"غذا",r:"مفعول"},{w:"پخت",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"دیشب",r:"قید"},{w:"به",r:"حرف اضافه"},{w:"مهمانی",r:"متمم"},{w:"رفتیم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"آهسته",r:"قید"},{w:"صحبت",r:null},{w:"کرد",r:"فعل"}]},
+  {s:[{w:"بچه",r:"نهاد"},{w:"صبح",r:"قید"},{w:"زود",r:"قید"},{w:"بیدار",r:"مسند"},{w:"شد",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"دوباره",r:"قید"},{w:"آمد",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"فردا",r:"قید"},{w:"به",r:"حرف اضافه"},{w:"مدرسه",r:"متمم"},{w:"می‌روم",r:"فعل"}]},
+  {s:[{w:"پدر",r:"نهاد"},{w:"همیشه",r:"قید"},{w:"صبح",r:"قید"},{w:"بیدار",r:"مسند"},{w:"می‌شود",r:"فعل"}]},
+
+  /* ۶) با منادا */
+  {s:[{w:"علی",r:"منادا"},{w:"کتاب",r:"مفعول"},{w:"را",r:null},{w:"بیاور",r:"فعل"}]},
+  {s:[{w:"ای",r:"حرف اضافه"},{w:"خدا",r:"منادا"},{w:"کمکم",r:"مفعول"},{w:"کن",r:"فعل"}]},
+  {s:[{w:"مادر",r:"منادا"},{w:"غذا",r:"نهاد"},{w:"آماده",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"ای",r:"حرف اضافه"},{w:"دوستان",r:"منادا"},{w:"گوش",r:null},{w:"کنید",r:"فعل"}]},
+  {s:[{w:"خدایا",r:"منادا"},{w:"تو",r:"نهاد"},{w:"یاری‌ام",r:"مفعول"},{w:"کن",r:"فعل"}]},
+  {s:[{w:"بچه‌ها",r:"منادا"},{w:"ساکت",r:"مسند"},{w:"باشید",r:"فعل"}]},
+  {s:[{w:"ای",r:"حرف اضافه"},{w:"علی",r:"منادا"},{w:"بیا",r:"فعل"}]},
+  {s:[{w:"مادر",r:"منادا"},{w:"کمکم",r:"مفعول"},{w:"کن",r:"فعل"}]},
+  {s:[{w:"خدایا",r:"منادا"},{w:"شکر",r:"مفعول"},{w:"می‌کنم",r:"فعل"}]},
+  {s:[{w:"بچه‌ها",r:"منادا"},{w:"گوش",r:null},{w:"کنید",r:"فعل"}]},
+  {s:[{w:"پدر",r:"منادا"},{w:"کمکم",r:"مفعول"},{w:"کن",r:"فعل"}]},
+  {s:[{w:"ای",r:"حرف اضافه"},{w:"دوست",r:"منادا"},{w:"به",r:"حرف اضافه"},{w:"من",r:"متمم"},{w:"گوش",r:null},{w:"کن",r:"فعل"}]},
+  {s:[{w:"معلم",r:"منادا"},{w:"به",r:"حرف اضافه"},{w:"ما",r:"متمم"},{w:"درس",r:"مفعول"},{w:"بده",r:"فعل"}]},
+  {s:[{w:"خدا",r:"منادا"},{w:"مرا",r:"مفعول"},{w:"ببخش",r:"فعل"}]},
+  {s:[{w:"ای",r:"حرف اضافه"},{w:"مادر",r:"منادا"},{w:"دوستت",r:"مفعول"},{w:"دارم",r:"فعل"}]},
+
+  /* ۷) ترکیبی */
+  {s:[{w:"علی",r:"نهاد"},{w:"دیروز",r:"قید"},{w:"نامه",r:"مفعول"},{w:"را",r:null},{w:"به",r:"حرف اضافه"},{w:"دوستش",r:"متمم"},{w:"داد",r:"فعل"}]},
+  {s:[{w:"مادر",r:"نهاد"},{w:"امروز",r:"قید"},{w:"غذای",r:null},{w:"خوشمزه",r:"مسند"},{w:"پخت",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"سرعت",r:"متمم"},{w:"به",r:"حرف اضافه"},{w:"خانه",r:"متمم"},{w:"رسید",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"دیروز",r:"قید"},{w:"کتاب",r:"مفعول"},{w:"را",r:null},{w:"از",r:"حرف اضافه"},{w:"کتابخانه",r:"متمم"},{w:"گرفتم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"همیشه",r:"قید"},{w:"خوشحال",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"فردا",r:"قید"},{w:"به",r:"حرف اضافه"},{w:"مدرسه",r:"متمم"},{w:"می‌رویم",r:"فعل"}]},
+  {s:[{w:"بچه‌ها",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"حیاط",r:"متمم"},{w:"فوتبال",r:"مفعول"},{w:"بازی",r:null},{w:"کردند",r:"فعل"}]},
+  {s:[{w:"پدر",r:"نهاد"},{w:"دیشب",r:"قید"},{w:"ماشین",r:"مفعول"},{w:"را",r:null},{w:"شست",r:"فعل"}]},
+  {s:[{w:"معلم",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"مهربانی",r:"متمم"},{w:"درس",r:"مفعول"},{w:"را",r:null},{w:"گفت",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"سریع",r:"قید"},{w:"به",r:"حرف اضافه"},{w:"بازار",r:"متمم"},{w:"رفت",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"دیروز",r:"قید"},{w:"او",r:"مفعول"},{w:"را",r:null},{w:"در",r:"حرف اضافه"},{w:"پارک",r:"متمم"},{w:"دیدم",r:"فعل"}]},
+  {s:[{w:"مادر",r:"نهاد"},{w:"برای",r:"حرف اضافه"},{w:"بچه‌ها",r:"متمم"},{w:"غذا",r:"مفعول"},{w:"پخت",r:"فعل"}]},
+  {s:[{w:"پدر",r:"نهاد"},{w:"دیروز",r:"قید"},{w:"از",r:"حرف اضافه"},{w:"سفر",r:"متمم"},{w:"برگشت",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"کتاب",r:"مفعول"},{w:"را",r:null},{w:"به",r:"حرف اضافه"},{w:"من",r:"متمم"},{w:"داد",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"دیشب",r:"قید"},{w:"با",r:"حرف اضافه"},{w:"دوستمان",r:"متمم"},{w:"حرف",r:null},{w:"زدیم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"کلاس",r:"متمم"},{w:"سؤال",r:"مفعول"},{w:"پرسید",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"امروز",r:"قید"},{w:"به",r:"حرف اضافه"},{w:"او",r:"متمم"},{w:"زنگ",r:null},{w:"زدم",r:"فعل"}]},
+  {s:[{w:"بچه",r:"نهاد"},{w:"از",r:"حرف اضافه"},{w:"مادرش",r:"متمم"},{w:"شیرینی",r:"مفعول"},{w:"خواست",r:"فعل"}]},
+  {s:[{w:"کارگر",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"سختی",r:"متمم"},{w:"دیوار",r:"مفعول"},{w:"ساخت",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"دیروز",r:"قید"},{w:"در",r:"حرف اضافه"},{w:"جلسه",r:"متمم"},{w:"سخنرانی",r:"مفعول"},{w:"کرد",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"همیشه",r:"قید"},{w:"به",r:"حرف اضافه"},{w:"معلم",r:"متمم"},{w:"گوش",r:null},{w:"می‌دهیم",r:"فعل"}]},
+  {s:[{w:"پدر",r:"نهاد"},{w:"برای",r:"حرف اضافه"},{w:"من",r:"متمم"},{w:"دوچرخه",r:"مفعول"},{w:"خرید",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"دوستانش",r:"متمم"},{w:"به",r:"حرف اضافه"},{w:"سینما",r:"متمم"},{w:"رفت",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"دیروز",r:"قید"},{w:"نامه",r:"مفعول"},{w:"را",r:null},{w:"برای",r:"حرف اضافه"},{w:"او",r:"متمم"},{w:"فرستادم",r:"فعل"}]},
+  {s:[{w:"معلم",r:"نهاد"},{w:"امروز",r:"قید"},{w:"به",r:"حرف اضافه"},{w:"دانش‌آموزان",r:"متمم"},{w:"تکلیف",r:"مفعول"},{w:"داد",r:"فعل"}]},
+
+  /* ۸) جملات کوتاه ساده */
+  {s:[{w:"باران",r:"نهاد"},{w:"می‌بارد",r:"فعل"}]},
+  {s:[{w:"خورشید",r:"نهاد"},{w:"می‌تابد",r:"فعل"}]},
+  {s:[{w:"بچه",r:"نهاد"},{w:"خوابید",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"آمد",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"رفتم",r:"فعل"}]},
+  {s:[{w:"علی",r:"نهاد"},{w:"خندید",r:"فعل"}]},
+  {s:[{w:"مادر",r:"نهاد"},{w:"آشپزی",r:null},{w:"می‌کند",r:"فعل"}]},
+  {s:[{w:"پرنده",r:"نهاد"},{w:"پرواز",r:null},{w:"کرد",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"دوید",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"رسیدیم",r:"فعل"}]},
+  {s:[{w:"کودک",r:"نهاد"},{w:"گریه",r:null},{w:"کرد",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"نشست",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"خوابیدم",r:"فعل"}]},
+  {s:[{w:"در",r:"حرف اضافه"},{w:"باز",r:"مسند"},{w:"شد",r:"فعل"}]},
+  {s:[{w:"برف",r:"نهاد"},{w:"آمد",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"بلند",r:"مسند"},{w:"شد",r:"فعل"}]},
+  {s:[{w:"مادر",r:"نهاد"},{w:"آمد",r:"فعل"}]},
+  {s:[{w:"بچه‌ها",r:"نهاد"},{w:"رفتند",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"خندیدیم",r:"فعل"}]},
+  {s:[{w:"پدر",r:"نهاد"},{w:"خواند",r:"فعل"}]},
+
+  /* ۹) با حروف اضافه متنوع */
+  {s:[{w:"او",r:"نهاد"},{w:"برای",r:"حرف اضافه"},{w:"من",r:"متمم"},{w:"کتاب",r:"مفعول"},{w:"خرید",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"درباره",r:"حرف اضافه"},{w:"درس",r:"متمم"},{w:"حرف",r:null},{w:"زدیم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"به",r:"حرف اضافه"},{w:"دوستش",r:"متمم"},{w:"زنگ",r:null},{w:"زد",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"خیابان",r:"متمم"},{w:"راه",r:null},{w:"می‌روم",r:"فعل"}]},
+  {s:[{w:"پدر",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"ماشین",r:"متمم"},{w:"آمد",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"بدون",r:"حرف اضافه"},{w:"کتاب",r:"متمم"},{w:"آمد",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"تا",r:"حرف اضافه"},{w:"مدرسه",r:"متمم"},{w:"دویدم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"مثل",r:"حرف اضافه"},{w:"پدرش",r:"متمم"},{w:"مهربان",r:"مسند"},{w:"است",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"نزد",r:"حرف اضافه"},{w:"او",r:"متمم"},{w:"رفتیم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"پیش",r:"حرف اضافه"},{w:"من",r:"متمم"},{w:"آمد",r:"فعل"}]},
+  {s:[{w:"کتاب",r:"نهاد"},{w:"زیر",r:"حرف اضافه"},{w:"میز",r:"متمم"},{w:"است",r:"فعل"}]},
+  {s:[{w:"توپ",r:"نهاد"},{w:"روی",r:"حرف اضافه"},{w:"بام",r:"متمم"},{w:"افتاد",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"از",r:"حرف اضافه"},{w:"پنجره",r:"متمم"},{w:"نگاه",r:null},{w:"کرد",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"قطار",r:"متمم"},{w:"سفر",r:null},{w:"کردم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"به",r:"حرف اضافه"},{w:"استاد",r:"متمم"},{w:"احترام",r:null},{w:"گذاشت",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"برای",r:"حرف اضافه"},{w:"تعطیلات",r:"متمم"},{w:"برنامه",r:"مفعول"},{w:"ریختیم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"درباره",r:"حرف اضافه"},{w:"سفر",r:"متمم"},{w:"صحبت",r:null},{w:"کرد",r:"فعل"}]},
+  {s:[{w:"بچه",r:"نهاد"},{w:"از",r:"حرف اضافه"},{w:"ترس",r:"متمم"},{w:"گریه",r:null},{w:"کرد",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"خانه",r:"متمم"},{w:"ماندم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"قلم",r:"متمم"},{w:"نوشت",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"از",r:"حرف اضافه"},{w:"پارک",r:"متمم"},{w:"گذشتیم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"به",r:"حرف اضافه"},{w:"سینما",r:"متمم"},{w:"رفت",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"دوست",r:"متمم"},{w:"قدم",r:null},{w:"زدم",r:"فعل"}]},
+
+  /* ۱۰) متنوع پیشرفته */
+  {s:[{w:"پرندگان",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"آسمان",r:"متمم"},{w:"پرواز",r:null},{w:"می‌کنند",r:"فعل"}]},
+  {s:[{w:"ماهی",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"آب",r:"متمم"},{w:"شنا",r:null},{w:"می‌کند",r:"فعل"}]},
+  {s:[{w:"کودکان",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"کوچه",r:"متمم"},{w:"بازی",r:null},{w:"می‌کنند",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"هر",r:"قید"},{w:"روز",r:"قید"},{w:"به",r:"حرف اضافه"},{w:"مدرسه",r:"متمم"},{w:"می‌روم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"هرگز",r:"قید"},{w:"دیر",r:"قید"},{w:"نمی‌آید",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"هم",r:"متمم"},{w:"دوست",r:"مسند"},{w:"هستیم",r:"فعل"}]},
+  {s:[{w:"مادر",r:"نهاد"},{w:"برای",r:"حرف اضافه"},{w:"من",r:"متمم"},{w:"غذا",r:"مفعول"},{w:"پخت",r:"فعل"}]},
+  {s:[{w:"پدر",r:"نهاد"},{w:"دیروز",r:"قید"},{w:"روزنامه",r:"مفعول"},{w:"خواند",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"خیلی",r:"قید"},{w:"سریع",r:"قید"},{w:"دوید",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"از",r:"حرف اضافه"},{w:"او",r:"متمم"},{w:"پرسیدم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"به",r:"حرف اضافه"},{w:"من",r:"متمم"},{w:"کمک",r:null},{w:"کرد",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"ماشین",r:"متمم"},{w:"به",r:"حرف اضافه"},{w:"شمال",r:"متمم"},{w:"رفتیم",r:"فعل"}]},
+  {s:[{w:"بچه",r:"نهاد"},{w:"از",r:"حرف اضافه"},{w:"مدرسه",r:"متمم"},{w:"برگشت",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"کتابخانه",r:"متمم"},{w:"درس",r:null},{w:"خواند",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"خانواده‌ام",r:"متمم"},{w:"به",r:"حرف اضافه"},{w:"مسافرت",r:"متمم"},{w:"رفتم",r:"فعل"}]},
+  {s:[{w:"معلم",r:"نهاد"},{w:"به",r:"حرف اضافه"},{w:"دانش‌آموز",r:"متمم"},{w:"کمک",r:null},{w:"کرد",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"از",r:"حرف اضافه"},{w:"دوستش",r:"متمم"},{w:"تشکر",r:"مفعول"},{w:"کرد",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"به",r:"حرف اضافه"},{w:"پدرم",r:"متمم"},{w:"گفتم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"دقت",r:"متمم"},{w:"گوش",r:null},{w:"داد",r:"فعل"}]},
+  {s:[{w:"بچه",r:"نهاد"},{w:"از",r:"حرف اضافه"},{w:"خواب",r:"متمم"},{w:"بیدار",r:"مسند"},{w:"شد",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"حیاط",r:"متمم"},{w:"نشستیم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"به",r:"حرف اضافه"},{w:"مهمانی",r:"متمم"},{w:"رفت",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"دیشب",r:"قید"},{w:"خواب",r:"مفعول"},{w:"دیدم",r:"فعل"}]},
+  {s:[{w:"پدر",r:"نهاد"},{w:"در",r:"حرف اضافه"},{w:"اتاق",r:"متمم"},{w:"استراحت",r:null},{w:"کرد",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"برای",r:"حرف اضافه"},{w:"ما",r:"متمم"},{w:"شعر",r:"مفعول"},{w:"خواند",r:"فعل"}]},
+  {s:[{w:"مادر",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"مهربانی",r:"متمم"},{w:"ما",r:"مفعول"},{w:"بوسید",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"فردا",r:"قید"},{w:"با",r:"حرف اضافه"},{w:"دوستم",r:"متمم"},{w:"ملاقات",r:null},{w:"می‌کنم",r:"فعل"}]},
+  {s:[{w:"او",r:"نهاد"},{w:"همیشه",r:"قید"},{w:"به",r:"حرف اضافه"},{w:"فقرا",r:"متمم"},{w:"کمک",r:null},{w:"می‌کند",r:"فعل"}]},
+  {s:[{w:"ما",r:"نهاد"},{w:"با",r:"حرف اضافه"},{w:"هم",r:"متمم"},{w:"همکاری",r:"مفعول"},{w:"کردیم",r:"فعل"}]},
+  {s:[{w:"من",r:"نهاد"},{w:"از",r:"حرف اضافه"},{w:"این",r:"متمم"},{w:"کتاب",r:"مفعول"},{w:"خوشم",r:"فعل"}]}
+];
+
+/* ==================== تنظیمات ==================== */
+const ROLES = ["نهاد","مفعول","متمم","مسند","فعل","قید","منادا","حرف اضافه"];
+let usedIndices = [];
+let currentSentences = [];
+let assignments = [];
+let round = 1;
+let statCorrect = 0, statWrong = 0;
+let activeWordEl = null, activeSentIdx = -1, activeWordIdx = -1;
+
+function perRoundCount(r){ return r === 1 ? 2 : r === 2 ? 3 : r === 3 ? 4 : 5; }
+
+/* ==================== المنت‌ها ==================== */
+const $ = id => document.getElementById(id);
+const startScreen=$("startScreen"), gameScreen=$("gameScreen"), roundEndScreen=$("roundEndScreen");
+const sentencesEl=$("sentences"), checkBtn=$("checkBtn"), resetBtn=$("resetBtn");
+const overlay=$("overlay"), sheet=$("sheet"), rolesGrid=$("rolesGrid"), selectedWordEl=$("selectedWord");
+const progressPill=$("progressPill");
+
+/* ==================== پنجره خطا ==================== */
+const toast=$("toast"), toastNum=$("toastNum"), toastOk=$("toastOk");
+function showErrorToast(count){
+  toastNum.textContent = toFa(count);
+  toast.classList.add("on");
+}
+toastOk.addEventListener("click", ()=> toast.classList.remove("on"));
+
+/* ==================== پنجره تأیید پاک کردن ==================== */
+const confirmBox=$("confirm"), confirmYes=$("confirmYes"), confirmNo=$("confirmNo");
+resetBtn.addEventListener("click", ()=> confirmBox.classList.add("on"));
+confirmNo.addEventListener("click", ()=> confirmBox.classList.remove("on"));
+confirmYes.addEventListener("click", ()=>{
+  assignments = currentSentences.map(s => s.s.map(()=> null));
+  checkBtn.textContent = "تایید ✓";
+  renderSentences();
+  updateCheckBtn();
+  confirmBox.classList.remove("on");
+});
+
+/* ==================== ریپل ==================== */
+function addRipple(e){
+  const btn=e.currentTarget;
+  const c=document.createElement("span");
+  const d=Math.max(btn.clientWidth, btn.clientHeight);
+  const r=btn.getBoundingClientRect();
+  c.style.width=c.style.height=d+"px";
+  c.style.left=(e.clientX-r.left-d/2)+"px";
+  c.style.top=(e.clientY-r.top-d/2)+"px";
+  c.className="ripple";
+  btn.appendChild(c);
+  setTimeout(()=> c.remove(), 600);
+}
+document.querySelectorAll(".btn").forEach(b=> b.addEventListener("click", addRipple));
+
+/* ==================== شیت نقش‌ها ==================== */
+function buildRoleSheet(){
+  rolesGrid.innerHTML="";
+  ROLES.forEach(role=>{
+    const b=document.createElement("button");
+    b.className="role-btn"; b.textContent=role; b.dataset.role=role;
+    b.onclick=()=> pickRole(role);
+    rolesGrid.appendChild(b);
+  });
+  const clear=document.createElement("button");
+  clear.className="role-btn clear-role"; clear.textContent="پاک کردن نقش";
+  clear.onclick=()=> pickRole(null);
+  rolesGrid.appendChild(clear);
+}
+buildRoleSheet();
+
+function openSheet(wordEl, si, wi){
+  activeWordEl=wordEl; activeSentIdx=si; activeWordIdx=wi;
+  selectedWordEl.textContent=wordEl.dataset.word;
+  const cur=assignments[si][wi];
+  [...rolesGrid.children].forEach(b=> b.classList.toggle("active", b.dataset.role===cur));
+  overlay.classList.add("on"); sheet.classList.add("on");
+}
+function closeSheet(){ overlay.classList.remove("on"); sheet.classList.remove("on"); }
+overlay.addEventListener("click", closeSheet);
+
+function pickRole(role){
+  if(activeSentIdx<0) return;
+  assignments[activeSentIdx][activeWordIdx]=role;
+  const el=activeWordEl;
+  if(role){ el.classList.add("assigned"); el.dataset.label=role; }
+  else { el.classList.remove("assigned"); el.removeAttribute("data-label"); }
+  el.classList.remove("wrong","correct");
+  updateCheckBtn(); closeSheet();
+}
+
+/* ==================== رندر جملات ==================== */
+function renderSentences(){
+  sentencesEl.innerHTML="";
+  currentSentences.forEach((sent, si)=>{
+    const row=document.createElement("div");
+    row.className="sentence";
+    row.style.animationDelay=(si*0.07)+"s";
+    sent.s.forEach((tok, wi)=>{
+      const w=document.createElement("span");
+      w.className="word"; w.textContent=tok.w;
+      w.dataset.word=tok.w; w.dataset.si=si; w.dataset.wi=wi;
+      w.addEventListener("click", ()=>{
+        if(w.classList.contains("locked")) return;
+        openSheet(w, si, wi);
+      });
+      row.appendChild(w);
+    });
+    sentencesEl.appendChild(row);
+  });
+}
+
+/* ==================== انتخاب جملات بدون تکرار ==================== */
+function pickSentences(count){
+  let available=[];
+  for(let i=0;i<BANK.length;i++) if(!usedIndices.includes(i)) available.push(i);
+  if(available.length < count){
+    usedIndices=[];
+    available=[];
+    for(let i=0;i<BANK.length;i++) available.push(i);
+    showErrorToast(0); // فقط برای ریست بصری
+    toast.classList.remove("on");
+  }
+  const chosen=[];
+  while(chosen.length < count){
+    const idx = available[Math.floor(Math.random()*available.length)];
+    if(!chosen.includes(idx)) chosen.push(idx);
+  }
+  chosen.forEach(i=> usedIndices.push(i));
+  return chosen.map(i=> BANK[i]);
+}
+
+/* ==================== شروع مرحله ==================== */
+function startRound(){
+  const count = perRoundCount(round);
+  currentSentences = pickSentences(count);
+  assignments = currentSentences.map(s=> s.s.map(()=> null));
+  $("roundNum").textContent = toFa(round);
+  $("perRoundLbl").textContent = toFa(count) + " جمله";
+  gameScreen.classList.remove("hidden");
+  startScreen.classList.add("hidden");
+  roundEndScreen.classList.add("hidden");
+  progressPill.classList.remove("hidden-pill");
+  renderSentences();
+  updateCheckBtn();
+  checkBtn.textContent = "تایید ✓";
+}
+
+/* ==================== بررسی دکمه ==================== */
+function updateCheckBtn(){
+  let allAssigned=true;
+  currentSentences.forEach((sent, si)=>{
+    sent.s.forEach((tok, wi)=>{
+      if(tok.r !== null && assignments[si][wi] === null) allAssigned=false;
+    });
+  });
+  checkBtn.disabled = !allAssigned;
+}
+
+/* ==================== تایید ==================== */
+checkBtn.addEventListener("click", ()=>{
+  let wrongCount=0;
+  const wordEls=sentencesEl.querySelectorAll(".word");
+  wordEls.forEach(el=>{
+    const si=+el.dataset.si, wi=+el.dataset.wi;
+    const correct=currentSentences[si].s[wi].r;
+    const user=assignments[si][wi];
+    el.classList.remove("wrong","correct","locked");
+    if(correct === null){
+      if(user !== null){ el.classList.add("wrong"); wrongCount++; }
+      else el.classList.add("correct","locked");
+    } else {
+      if(user === correct) el.classList.add("correct","locked");
+      else { el.classList.add("wrong"); wrongCount++; }
+    }
+  });
+
+  const totalAssigned = currentSentences.reduce((a,s)=> a + s.s.filter(t=>t.r!==null).length, 0);
+  statCorrect += (totalAssigned - wrongCount);
+  statWrong += wrongCount;
+
+  if(wrongCount === 0){
+    fireConfetti();
+    setTimeout(()=> showRoundEnd(true), 900);
+  } else {
+    showErrorToast(wrongCount);
+    checkBtn.textContent = "بررسی مجدد ✓";
+  }
+});
+
+/* ==================== پایان مرحله ==================== */
+function showRoundEnd(success){
+  gameScreen.classList.add("hidden");
+  roundEndScreen.classList.remove("hidden");
+  progressPill.classList.add("hidden-pill");
+  $("statCorrect").textContent = toFa(statCorrect);
+  $("statWrong").textContent = toFa(statWrong);
+  $("statRound").textContent = toFa(round);
+  if(success){
+    $("endEmoji").textContent="🎉";
+    $("endTitle").textContent="آفرین! مرحله " + toFa(round) + " کامل شد";
+    $("endText").textContent="همه نقش‌ها را درست تشخیص دادی. آماده‌ای برای مرحله بعد؟";
+    $("nextBtn").textContent="مرحله بعد ➜";
+  }
+}
+
+$("nextBtn").addEventListener("click", ()=>{
+  round++;
+  statCorrect=0; statWrong=0;
+  startRound();
+});
+$("startBtn").addEventListener("click", ()=>{
+  round=1; statCorrect=0; statWrong=0;
+  startRound();
+});
+
+/* ==================== کانفتی ==================== */
+function fireConfetti(){
+  const colors=["#4285f4","#ea4335","#fbbc05","#34a853","#a142f4"];
+  for(let i=0;i<80;i++){
+    const c=document.createElement("div");
+    c.className="confetti";
+    c.style.left=Math.random()*100+"vw";
+    c.style.background=colors[Math.floor(Math.random()*colors.length)];
+    c.style.animation=`fall ${1.6+Math.random()*1.6}s cubic-bezier(.2,.6,.4,1) forwards`;
+    c.style.animationDelay=(Math.random()*0.4)+"s";
+    c.style.transform=`rotate(${Math.random()*360}deg)`;
+    if(Math.random()>0.6) c.style.borderRadius="50%";
+    document.body.appendChild(c);
+    setTimeout(()=> c.remove(), 3800);
+  }
+}
+
+/* ==================== اعداد فارسی ==================== */
+function toFa(n){
+  const fa=["۰","۱","۲","۳","۴","۵","۶","۷","۸","۹"];
+  return String(n).replace(/\d/g, d=> fa[+d]);
+}
+
+/* ==================== جلوگیری از کپی ==================== */
+document.addEventListener("copy", e=> e.preventDefault());
+document.addEventListener("cut", e=> e.preventDefault());
+document.addEventListener("contextmenu", e=> e.preventDefault());
+document.addEventListener("selectstart", e=>{
+  if(e.target.closest(".word") || e.target.closest("button")) return;
+  e.preventDefault();
+});
+document.addEventListener("keydown", e=>{
+  if((e.ctrlKey||e.metaKey) && ["c","x","a","u","s"].includes(e.key.toLowerCase())) e.preventDefault();
+  if(e.key === "Escape") closeSheet();
+});
+
+/* ==================== Liquid Glass Mouse Tracking ==================== */
+document.addEventListener('DOMContentLoaded', function() {
+  const glassElements = document.querySelectorAll('.glass-card, .sheet');
+  glassElements.forEach(element => {
+    element.addEventListener('mousemove', handleMouseMove);
+    element.addEventListener('mouseleave', handleMouseLeave);
+  });
+  function handleMouseMove(e) {
+    const rect = this.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const filter = document.querySelector('#glass-distortion feDisplacementMap');
+    if (filter) {
+      const scaleX = (x / rect.width) * 100;
+      const scaleY = (y / rect.height) * 100;
+      filter.setAttribute('scale', Math.min(scaleX, scaleY));
+    }
+    const specular = this.querySelector('.glass-specular');
+    if (specular) {
+      specular.style.background = `radial-gradient(
+        circle at ${x}px ${y}px,
+        rgba(255,255,255,0.18) 0%,
+        rgba(255,255,255,0.06) 30%,
+        rgba(255,255,255,0) 60%
+      )`;
+    }
+  }
+  function handleMouseLeave() {
+    const filter = document.querySelector('#glass-distortion feDisplacementMap');
+    if (filter) filter.setAttribute('scale', '77');
+    const specular = this.querySelector('.glass-specular');
+    if (specular) specular.style.background = 'none';
+  }
+});
+</script>
+</body>
+  </html>
