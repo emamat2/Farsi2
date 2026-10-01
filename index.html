@@ -23,7 +23,6 @@
     overflow-x:hidden;
     -webkit-font-smoothing:antialiased;
   }
-  /* پس‌زمینه سبک */
   .bg-orbs{position:fixed;inset:0;z-index:0;pointer-events:none;
     background:
       radial-gradient(circle at 90% 5%, rgba(66,133,244,.18) 0%, transparent 40%),
@@ -45,7 +44,6 @@
   .progress-pill.hidden-pill{opacity:0;pointer-events:none;}
   .progress-pill b{color:var(--blue);font-size:14px;}
 
-  /* کارت شیشه‌ای سبک — بدون backdrop-filter */
   .glass-card{
     position:relative;border-radius:20px;overflow:hidden;
     background:rgba(255,255,255,.72);
@@ -63,7 +61,6 @@
     border-radius:12px;padding:10px 8px;
     display:flex;flex-wrap:wrap;gap:0;align-items:center;justify-content:center;
     animation:pop .3s ease-out both;
-    will-change:transform,opacity;
   }
   @keyframes pop{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
   .word{
@@ -103,7 +100,7 @@
   .actions{display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
   .btn{
     font-family:inherit;font-size:14.5px;font-weight:700;border:none;border-radius:999px;
-    padding:12px 26px;cursor:pointer;
+    padding:12px 26px;cursor:pointer;position:relative;overflow:hidden;
     transition:transform .15s ease-out,background .15s;
     display:inline-flex;align-items:center;gap:6px;
     -webkit-tap-highlight-color:transparent;
@@ -126,6 +123,8 @@
     box-shadow:0 -4px 24px rgba(0,0,0,.2);
     transition:transform .3s ease-out;
     will-change:transform;
+    max-height:80vh;
+    overflow-y:auto;
   }
   .sheet.on{transform:translate(-50%,0);}
   .sheet .handle{width:40px;height:4px;border-radius:5px;background:#dadce0;margin:4px auto 10px;}
@@ -142,7 +141,6 @@
   .role-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
   .role-btn.clear-role{grid-column:1/-1;color:var(--red);border-color:#f5c6c4;}
 
-  /* پنجره خطا */
   .toast{
     position:fixed;top:50%;left:50%;
     transform:translate(-50%,-50%) scale(.9);
@@ -166,7 +164,6 @@
     background:var(--red);color:#fff;
   }
 
-  /* پنجره تأیید */
   .confirm{
     position:fixed;top:50%;left:50%;
     transform:translate(-50%,-50%) scale(.9);
@@ -193,9 +190,9 @@
   .center-screen h2{font-size:21px;margin:0 0 10px;}
   .center-screen p{color:var(--grey);line-height:1.9;margin:0 0 18px;font-size:14px;}
 
-  /* کانفتی سبک */
   .confetti{position:fixed;top:-10px;width:8px;height:12px;z-index:99;pointer-events:none;border-radius:2px;}
   @keyframes fall{to{transform:translateY(105vh) rotate(540deg);opacity:.85;}}
+  @keyframes ripple{to{transform:scale(4);opacity:0;}}
 
   .stats{display:flex;gap:10px;justify-content:center;margin:16px 0 4px;flex-wrap:wrap;}
   .stat{background:#f1f3f4;border-radius:14px;padding:10px 18px;min-width:90px;}
@@ -204,7 +201,6 @@
 
   .hidden{display:none!important;}
 
-  /* اگر دستگاه ضعیف است، انیمیشن‌ها را کم کن */
   @media (prefers-reduced-motion: reduce){
     *{animation-duration:.01ms!important;transition-duration:.01ms!important;}
   }
@@ -561,6 +557,7 @@ const toast=$("toast"), toastNum=$("toastNum"), toastOk=$("toastOk");
 const confirmBox=$("confirm"), confirmYes=$("confirmYes"), confirmNo=$("confirmNo");
 const statCorrectEl = $("statCorrect"), statWrongEl = $("statWrong"), statRoundEl = $("statRound");
 const endEmojiEl=$("endEmoji"), endTitleEl=$("endTitle"), endTextEl=$("endText"), nextBtn=$("nextBtn");
+const startBtn = $("startBtn");
 
 /* ==================== توابع کمکی ==================== */
 function toFa(n){
@@ -571,9 +568,8 @@ function showErrorToast(count){
   toastNum.textContent = toFa(count);
   toast.classList.add("on");
 }
-toastOk.addEventListener("click", ()=> toast.classList.remove("on"));
 
-/* ==================== ریپل — فقط روی دکمه‌ها، ساده‌شده ==================== */
+/* ==================== ریپل ==================== */
 function addRipple(e){
   const btn = e.currentTarget;
   const c = document.createElement("span");
@@ -583,14 +579,10 @@ function addRipple(e){
   btn.appendChild(c);
   setTimeout(()=> c.remove(), 550);
 }
-const rippleStyle = document.createElement("style");
-rippleStyle.textContent = "@keyframes ripple{to{transform:scale(4);opacity:0;}}";
-document.head.appendChild(rippleStyle);
-
-document.querySelectorAll(".btn").forEach(b=> b.addEventListener("click", addRipple));
 
 /* ==================== شیت نقش‌ها ==================== */
 function buildRoleSheet(){
+  rolesGrid.innerHTML = "";
   const frag = document.createDocumentFragment();
   ROLES.forEach(role=>{
     const b = document.createElement("button");
@@ -607,7 +599,6 @@ function buildRoleSheet(){
   frag.appendChild(clear);
   rolesGrid.appendChild(frag);
 }
-buildRoleSheet();
 
 function openSheet(wordEl, si, wi){
   activeWordEl = wordEl;
@@ -622,11 +613,11 @@ function openSheet(wordEl, si, wi){
   overlay.classList.add("on");
   sheet.classList.add("on");
 }
+
 function closeSheet(){
   overlay.classList.remove("on");
   sheet.classList.remove("on");
 }
-overlay.addEventListener("click", closeSheet);
 
 function pickRole(role){
   if(activeSentIdx < 0) return;
@@ -644,7 +635,7 @@ function pickRole(role){
   closeSheet();
 }
 
-/* ==================== رندر جملات — با DocumentFragment ==================== */
+/* ==================== رندر جملات ==================== */
 function renderSentences(){
   const frag = document.createDocumentFragment();
   currentSentences.forEach((sent, si)=>{
@@ -658,6 +649,10 @@ function renderSentences(){
       w.dataset.word = tok.w;
       w.dataset.si = si;
       w.dataset.wi = wi;
+      w.addEventListener("click", ()=>{
+        if(w.classList.contains("locked")) return;
+        openSheet(w, si, wi);
+      });
       row.appendChild(w);
     });
     frag.appendChild(row);
@@ -665,7 +660,7 @@ function renderSentences(){
   sentencesEl.replaceChildren(frag);
 }
 
-/* ==================== انتخاب جملات بدون تکرار ==================== */
+/* ==================== انتخاب جملات ==================== */
 function pickSentences(count){
   let available = [];
   for(let i = 0; i < BANK.length; i++){
@@ -716,8 +711,8 @@ function updateCheckBtn(){
   checkBtn.disabled = !allAssigned;
 }
 
-/* ==================== تایید ==================== */
-checkBtn.addEventListener("click", ()=>{
+/* ==================== تابع بررسی پاسخ‌ها ==================== */
+function checkAnswers(){
   let wrongCount = 0;
   const wordEls = sentencesEl.querySelectorAll(".word");
   const len = wordEls.length;
@@ -754,7 +749,7 @@ checkBtn.addEventListener("click", ()=>{
     showErrorToast(wrongCount);
     checkBtn.textContent = "بررسی مجدد ✓";
   }
-});
+}
 
 /* ==================== پایان مرحله ==================== */
 function showRoundEnd(success){
@@ -771,19 +766,6 @@ function showRoundEnd(success){
     nextBtn.textContent = "مرحله بعد ➜";
   }
 }
-
-nextBtn.addEventListener("click", ()=>{
-  round++;
-  statCorrect = 0;
-  statWrong = 0;
-  startRound();
-});
-$("startBtn").addEventListener("click", ()=>{
-  round = 1;
-  statCorrect = 0;
-  statWrong = 0;
-  startRound();
-});
 
 /* ==================== کانفتی سبک ==================== */
 const CONFETTI_COLORS = ["#4285f4", "#ea4335", "#fbbc05", "#34a853", "#a142f4"];
@@ -805,28 +787,50 @@ function fireConfetti(){
   setTimeout(()=> items.forEach(c=> c.remove()), 3200);
 }
 
-/* ==================== تأیید پاک کردن ==================== */
-resetBtn.addEventListener("click", ()=> confirmBox.classList.add("on"));
-confirmNo.addEventListener("click", ()=> confirmBox.classList.remove("on"));
-confirmYes.addEventListener("click", ()=>{
-  assignments = currentSentences.map(s => s.s.map(()=> null));
-  checkBtn.textContent = "تایید ✓";
-  renderSentences();
-  updateCheckBtn();
-  confirmBox.classList.remove("on");
-});
+/* ==================== شروع اجرا پس از آماده شدن DOM ==================== */
+document.addEventListener("DOMContentLoaded", ()=>{
+  // ساخت شیت نقش‌ها
+  buildRoleSheet();
 
-/* ==================== جلوگیری از کپی ==================== */
-document.addEventListener("copy", e => e.preventDefault());
-document.addEventListener("cut", e => e.preventDefault());
-document.addEventListener("contextmenu", e => e.preventDefault());
-document.addEventListener("selectstart", e =>{
-  if(e.target.closest(".word") || e.target.closest("button")) return;
-  e.preventDefault();
-});
-document.addEventListener("keydown", e=>{
-  if((e.ctrlKey || e.metaKey) && ["c","x","a","u","s"].includes(e.key.toLowerCase())) e.preventDefault();
-  if(e.key === "Escape") closeSheet();
+  // اتصال رویدادها
+  document.querySelectorAll(".btn").forEach(b=> b.addEventListener("click", addRipple));
+  overlay.addEventListener("click", closeSheet);
+  toastOk.addEventListener("click", ()=> toast.classList.remove("on"));
+  resetBtn.addEventListener("click", ()=> confirmBox.classList.add("on"));
+  confirmNo.addEventListener("click", ()=> confirmBox.classList.remove("on"));
+  confirmYes.addEventListener("click", ()=>{
+    assignments = currentSentences.map(s => s.s.map(()=> null));
+    checkBtn.textContent = "تایید ✓";
+    renderSentences();
+    updateCheckBtn();
+    confirmBox.classList.remove("on");
+  });
+  nextBtn.addEventListener("click", ()=>{
+    round++;
+    statCorrect = 0;
+    statWrong = 0;
+    startRound();
+  });
+  startBtn.addEventListener("click", ()=>{
+    round = 1;
+    statCorrect = 0;
+    statWrong = 0;
+    startRound();
+  });
+  checkBtn.addEventListener("click", checkAnswers);
+
+  // جلوگیری از کپی
+  document.addEventListener("copy", e => e.preventDefault());
+  document.addEventListener("cut", e => e.preventDefault());
+  document.addEventListener("contextmenu", e => e.preventDefault());
+  document.addEventListener("selectstart", e =>{
+    if(e.target.closest(".word") || e.target.closest("button")) return;
+    e.preventDefault();
+  });
+  document.addEventListener("keydown", e=>{
+    if((e.ctrlKey || e.metaKey) && ["c","x","a","u","s"].includes(e.key.toLowerCase())) e.preventDefault();
+    if(e.key === "Escape") closeSheet();
+  });
 });
 </script>
 </body>
